@@ -1,0 +1,41 @@
+/* Auto-generated from src/themes/registry.ts — do not edit manually */
+
+:root {
+  --color-bg-primary: #1e1e2e;
+  --color-bg-secondary: #181825;
+  --color-bg-tertiary: #313244;
+  --color-text-primary: #cdd6f4;
+  --color-text-secondary: #a6adc8;
+  --color-accent: #89b4fa;
+  --color-accent-hover: #89dceb;
+  --color-border: #6c7086;
+  --color-success: #a6e3a1;
+  --color-error: #f38ba8;
+}
+
+[data-theme="tokyo-night"] {
+  --color-bg-primary: #1a1b26;
+  --color-bg-secondary: #16161e;
+  --color-bg-tertiary: #24283b;
+  --color-text-primary: #c0caf5;
+  --color-text-secondary: #565f89;
+  --color-accent: #7aa2f7;
+  --color-accent-hover: #bb9af7;
+  --color-border: #3b4261;
+  --color-success: #9ece6a;
+  --color-error: #f7768e;
+}
+
+[data-theme="gruvbox"] {
+  --color-bg-primary: #282828;
+  --color-bg-secondary: #1d2021;
+  --color-bg-tertiary: #3c3836;
+  --color-text-primary: #ebdbb2;
+  --color-text-secondary: #a89984;
+  --color-accent: #83a598;
+  --color-accent-hover: #b8bb26;
+  --color-border: #504945;
+  --color-success: #b8bb26;
+  --color-error: #fb4934;
+}
+
