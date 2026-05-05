@@ -10,29 +10,38 @@ import (
 	"syscall"
 	"time"
 
-	httprouter "grubbin-data/backend/internal/adapters/http"
-	"grubbin-data/backend/internal/adapters/http/handlers"
 	"grubbin-data/backend/internal/config"
+	"grubbin-data/backend/internal/controllers"
+	"grubbin-data/backend/internal/routes"
 	"grubbin-data/backend/internal/services"
 )
 
 func main() {
+	// Load configuration
 	appConfig, configError := config.Load()
 	if configError != nil {
 		slog.Error("Failed to load configuration", "error", configError)
 		os.Exit(1)
 	}
 
-	helloWorldService := services.NewHelloWorldService()
-	helloWorldHandler := handlers.NewHelloWorldHandler(helloWorldService)
-	router := httprouter.NewRouter(helloWorldHandler)
+	// Initialize MVC layers
+	// Service layer (business logic + orchestration)
+	greetingService := services.NewGreetingService()
 
+	// Controller layer (HTTP handlers)
+	greetingController := controllers.NewGreetingController(greetingService)
+
+	// Routes (Chi router setup)
+	router := routes.SetupRoutes(greetingController)
+
+	// Create HTTP server
 	serverAddress := fmt.Sprintf(":%d", appConfig.Port)
 	httpServer := &http.Server{
 		Addr:    serverAddress,
 		Handler: router,
 	}
 
+	// Start server in goroutine
 	go func() {
 		slog.Info("Starting server", "address", serverAddress, "environment", appConfig.Env)
 		if listenError := httpServer.ListenAndServe(); listenError != nil && listenError != http.ErrServerClosed {
@@ -41,10 +50,12 @@ func main() {
 		}
 	}()
 
+	// Wait for shutdown signal
 	shutdownChannel := make(chan os.Signal, 1)
 	signal.Notify(shutdownChannel, os.Interrupt, syscall.SIGTERM)
 	<-shutdownChannel
 
+	// Graceful shutdown
 	slog.Info("Shutting down server...")
 	shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

@@ -13,11 +13,16 @@ Accept and analyze Grubhub delivery data over time. Starting as a study project 
 
 ## Architecture
 
-- **Backend**: Go 1.24, Functional Core / Imperative Shell (FC/IS).
+- **Backend**: Go 1.24, MVC Architecture with Functional Core / Imperative Shell (FC/IS).
   - `internal/core/` — pure functions, zero I/O, zero external imports.
   - `internal/services/` — orchestrators: compose core + side effects (DB, time).
-  - `internal/adapters/http/` — thin HTTP handlers (chi router).
-  - `internal/repositories/` — DB interfaces + implementations.
+  - `internal/models/` — domain types and data structures.
+  - `internal/controllers/` — thin HTTP handlers (MVC controllers).
+  - `internal/routes/` — Chi router configuration.
+  - `internal/repositories/` — DB interfaces + implementations (Phase 2+).
+
+> **Note**: The backend uses MVC terminology (models, controllers, routes) while maintaining FC/IS principles. Controllers are thin HTTP adapters, services orchestrate between pure core logic and side effects, and models define domain types. This provides familiar MVC structure with functional programming benefits.
+
 - **Frontend**: React 19 + Vite + TypeScript, executed via Bun.
   - Pure components (props → JSX, no side effects).
   - Custom hooks isolate data fetching / side effects.
@@ -51,11 +56,12 @@ grubbin-data/
 │   ├── cmd/api/main.go              # Entry point
 │   ├── internal/
 │   │   ├── config/                  # Env loader
+│   │   ├── controllers/             # MVC controllers (HTTP handlers)
 │   │   ├── core/                    # Pure business logic
-│   │   ├── services/                # Orchestrators
-│   │   └── adapters/http/           # Chi router + handlers
-│   │       ├── router.go
-│   │       └── handlers/            # Thin HTTP adapters
+│   │   ├── models/                  # Domain types and structs
+│   │   ├── repositories/            # Data access layer (Phase 2+)
+│   │   ├── routes/                  # Chi router configuration
+│   │   └── services/                # Business logic orchestrators
 │   ├── Dockerfile
 │   ├── go.mod
 │   └── go.sum

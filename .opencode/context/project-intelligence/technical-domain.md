@@ -1,9 +1,9 @@
-<!-- Context: project-intelligence/technical | Priority: critical | Version: 1.1 | Updated: 2026-05-01 -->
+<!-- Context: project-intelligence/technical | Priority: critical | Version: 1.2 | Updated: 2026-05-05 -->
 
 # Technical Domain
 
 **Purpose**: Tech stack, architecture, and coding patterns for Grubbin Data.
-**Last Updated**: 2026-05-01
+**Last Updated**: 2026-05-05
 **Update Triggers**: Tech stack changes | New patterns | Architecture decisions
 
 ---
@@ -27,11 +27,15 @@
 
 ## Architecture Patterns
 
-**Backend: Functional Core / Imperative Shell (FC/IS)**
+**Backend: MVC Architecture with Functional Core / Imperative Shell (FC/IS)**
 - `internal/core/` — pure functions, zero I/O, zero external imports.
 - `internal/services/` — orchestrators: compose core + side effects (DB, time).
-- `internal/adapters/http/` — thin HTTP handlers (chi router).
+- `internal/models/` — domain types and data structures.
+- `internal/controllers/` — thin HTTP handlers (MVC controllers).
+- `internal/routes/` — Chi router configuration.
 - `internal/repositories/` — DB interfaces + implementations (Phase 2+).
+
+> **Note**: The backend uses MVC terminology while maintaining FC/IS principles. Controllers are thin HTTP adapters, services orchestrate between pure core logic and side effects.
 
 **Frontend: Pure Components + Custom Hooks**
 - Components are pure: props → JSX, no side effects during render.
@@ -62,20 +66,20 @@
 ## API Pattern (Go)
 
 ```go
-func (handler *HelloWorldHandler) GetGreeting(
-    responseWriter http.ResponseWriter,
-    request *http.Request,
-) {
-    greetingMessage, greetingError := handler.helloWorldService.GenerateGreeting(request.Context())
-    if greetingError != nil {
-        handler.respondWithError(responseWriter, greetingError)
+func (c *GreetingController) GetGreeting(w http.ResponseWriter, r *http.Request) {
+    name := r.URL.Query().Get("name")
+
+    greeting, err := c.greetingService.GenerateGreeting(r.Context(), name)
+    if err != nil {
+        respondWithError(w, http.StatusInternalServerError, err)
         return
     }
-    handler.respondWithJSON(responseWriter, http.StatusOK, greetingMessage)
+
+    respondWithJSON(w, http.StatusOK, greeting)
 }
 ```
 
-**Rules**: Handlers are thin — parse request, call service, encode response. Never put business logic in handlers. Name variables after their domain meaning.
+**Rules**: Controllers are thin — parse request, call service, encode response. Never put business logic in controllers. Name variables after their domain meaning.
 
 ---
 

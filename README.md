@@ -14,11 +14,13 @@ A containerized full-stack application for analyzing Grubhub delivery data over 
 
 ## Architecture
 
-**Backend**: Functional Core / Imperative Shell (FC/IS)
+**Backend**: MVC Architecture with Functional Core / Imperative Shell (FC/IS)
 
 - `internal/core/` — pure functions, zero I/O
 - `internal/services/` — orchestrators (core + side effects)
-- `internal/adapters/http/` — thin HTTP handlers
+- `internal/models/` — domain types and data structures
+- `internal/controllers/` — thin HTTP handlers (MVC controllers)
+- `internal/routes/` — Chi router configuration
 
 **Frontend**: Pure Components + Custom Hooks
 
@@ -63,9 +65,12 @@ grubbin-data/
 │   ├── cmd/api/main.go              # Entry point
 │   ├── internal/
 │   │   ├── config/                  # Environment config
+│   │   ├── controllers/             # MVC controllers (HTTP handlers)
 │   │   ├── core/                    # Pure business logic
-│   │   ├── services/                # Orchestrators
-│   │   └── adapters/http/           # Chi router + handlers
+│   │   ├── models/                  # Domain types and structs
+│   │   ├── repositories/            # Data access layer (Phase 2+)
+│   │   ├── routes/                  # Chi router configuration
+│   │   └── services/                # Business logic orchestrators
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
