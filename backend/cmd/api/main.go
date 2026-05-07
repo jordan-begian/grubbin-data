@@ -14,6 +14,7 @@ import (
 	"grubbin-data/backend/internal/controllers"
 	"grubbin-data/backend/internal/routes"
 	"grubbin-data/backend/internal/services"
+	"grubbin-data/backend/internal/utilities"
 )
 
 func main() {
@@ -25,11 +26,17 @@ func main() {
 	}
 
 	// Initialize MVC layers
+	// Response builder (utilities)
+	responseBuilder := utilities.NewResponseBuilder()
+
 	// Service layer (business logic + orchestration)
 	greetingService := services.NewGreetingService()
 
 	// Controller layer (HTTP handlers)
-	greetingController := controllers.NewGreetingController(greetingService)
+	greetingController := controllers.NewGreetingController(
+		responseBuilder,
+		greetingService,
+	)
 
 	// Routes (Chi router setup)
 	router := routes.SetupRoutes(greetingController)

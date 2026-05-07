@@ -2,45 +2,41 @@
 package controllers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"grubbin-data/backend/internal/services"
+	"grubbin-data/backend/internal/utilities"
 )
 
 // GreetingController handles HTTP requests for greetings
 type GreetingController struct {
+	responseBuilder *utilities.ResponseBuilder
 	greetingService *services.GreetingService
 }
 
 // NewGreetingController creates a new greeting controller
-func NewGreetingController(greetingService *services.GreetingService) *GreetingController {
+func NewGreetingController(
+	responseBuilder *utilities.ResponseBuilder,
+	greetingService *services.GreetingService,
+) *GreetingController {
 	return &GreetingController{
+		responseBuilder: responseBuilder,
 		greetingService: greetingService,
 	}
 }
 
 // GetGreeting handles GET /hello requests
-func (c *GreetingController) GetGreeting(w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
+func (controller *GreetingController) GetGreeting(
+	response http.ResponseWriter,
+	request *http.Request,
+) {
+	name := request.URL.Query().Get("name")
 
-	greeting, err := c.greetingService.GenerateGreeting(r.Context(), name)
+	greeting, err := controller.greetingService.GenerateGreeting(request.Context(), name)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err)
+		controller.responseBuilder.Error(response, http.StatusInternalServerError, err)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, greeting)
-}
-
-// respondWithJSON sends a JSON response
-func respondWithJSON(w http.ResponseWriter, statusCode int, payload interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(payload)
-}
-
-// respondWithError sends an error response
-func respondWithError(w http.ResponseWriter, statusCode int, err error) {
-	respondWithJSON(w, statusCode, map[string]string{"error": err.Error()})
+	controller.responseBuilder.JSON(response, http.StatusOK, greeting)
 }

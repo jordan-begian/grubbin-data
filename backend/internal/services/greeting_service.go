@@ -19,7 +19,7 @@ func NewGreetingService() *GreetingService {
 }
 
 // GenerateGreeting creates a greeting for the given name
-func (s *GreetingService) GenerateGreeting(ctx context.Context, name string) (*models.Greeting, error) {
+func (*GreetingService) GenerateGreeting(ctx context.Context, name string) (*models.Greeting, error) {
 	// Pure business logic from core
 	message := core.GenerateGreeting(name)
 
