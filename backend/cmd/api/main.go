@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"grubbin-data/backend/internal/config"
 	"grubbin-data/backend/internal/controllers"
 	"grubbin-data/backend/internal/routes"
@@ -25,7 +27,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize MVC layers
+	// Initialize database connection pool
+	dbPool, dbPoolError := pgxpool.New(context.Background(), appConfig.DatabaseURL)
+	if dbPoolError != nil {
+		slog.Error("Failed to connect to database", "error", dbPoolError)
+		os.Exit(1)
+	}
+	defer dbPool.Close()
+
 	// Response builder (utilities)
 	responseBuilder := utilities.NewResponseBuilder()
 

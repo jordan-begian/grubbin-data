@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Port int
-	Env  string
+	Port        int
+	Env         string
+	DatabaseURL string
 }
 
 func Load() (*Config, error) {
@@ -30,8 +31,14 @@ func Load() (*Config, error) {
 		environment = "development"
 	}
 
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = "postgres://postgres:postgres@localhost:5432/grubbin?sslmode=disable"
+	}
+
 	return &Config{
-		Port: portNumber,
-		Env:  environment,
+		Port:        portNumber,
+		Env:         environment,
+		DatabaseURL: databaseURL,
 	}, nil
 }
