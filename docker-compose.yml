@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-grubbin}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-grubbin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grubbin-network
+
   backend:
     build: ./backend
     ports:
@@ -6,8 +22,18 @@ services:
     environment:
       - PORT=8080
       - ENV=development
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-grubbin}?sslmode=disable
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-grubbin}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_SSL_MODE=disable
     volumes:
       - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - grubbin-network
 
@@ -23,6 +49,9 @@ services:
       - backend
     networks:
       - grubbin-network
+
+volumes:
+  postgres_data:
 
 networks:
   grubbin-network:
