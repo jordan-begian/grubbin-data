@@ -114,6 +114,10 @@ bun run generate:themes
 - Atlas HCL schema defined for all tables
 - Task runner configured for database + backend + frontend workflows
 - Schema management via Atlas (declarative HCL)
+- Auth endpoints: `POST /api/v1/auth/register` and `POST /api/v1/auth/login`
+- Unified `Controller` with service interfaces for testability
+- ULID generation for sortable, unique IDs
+- Atomic user+profile+vehicle creation via transactions
 
 ## Project Structure
 
@@ -133,8 +137,8 @@ grubbin-data/
 │   │   ├── models/                  # Domain types and structs
 │   │   │   ├── deliveries.go        # Delivery, PickupLocation, DropoffLocation, DeliveryEarnings
 │   │   │   ├── greeting.go          # Greeting response
-│   │   │   ├── requests.go          # CreateDeliveryRequest
-│   │   │   ├── responses.go         # DeliveryResponse, DeliveryListResponse, DeliveryStats
+│   │   │   ├── requests.go          # CreateDeliveryRequest, RegisterUserRequest, LoginRequest
+│   │   │   ├── responses.go         # DeliveryResponse, DeliveryListResponse, DeliveryStats, UserResponse
 │   │   │   └── user.go              # User, Profile, Vehicle
 │   │   ├── repositories/            # Data access layer (Phase 2+)
 │   │   ├── routes/                  # Chi router configuration

@@ -12,7 +12,7 @@ import (
 )
 
 // SetupRoutes configures the Chi router with all routes
-func SetupRoutes(greetingController *controllers.GreetingController) *chi.Mux {
+func SetupRoutes(controller *controllers.Controller) *chi.Mux {
 	router := chi.NewRouter()
 
 	// Middleware stack
@@ -23,17 +23,24 @@ func SetupRoutes(greetingController *controllers.GreetingController) *chi.Mux {
 	router.Use(middleware.Timeout(60 * time.Second))
 
 	// Mount v1 routes
-	router.Mount("/api/v1", apiV1Routes(greetingController))
+	router.Mount("/api/v1", apiV1Routes(controller))
 
 	// Mount latest routes (alias to v1)
-	router.Mount("/api", apiV1Routes(greetingController))
+	router.Mount("/api", apiV1Routes(controller))
 
 	return router
 }
 
 // apiV1Routes defines all v1 API routes
-func apiV1Routes(greetingController *controllers.GreetingController) http.Handler {
+func apiV1Routes(controller *controllers.Controller) http.Handler {
 	router := chi.NewRouter()
-	router.Get("/hello", greetingController.GetGreeting)
+
+	// Greeting
+	router.Get("/hello", controller.GetGreeting)
+
+	// Auth
+	router.Post("/auth/register", controller.RegisterUser)
+	router.Post("/auth/login", controller.Login)
+
 	return router
 }

@@ -14,6 +14,7 @@ import (
 
 	"grubbin-data/backend/internal/config"
 	"grubbin-data/backend/internal/controllers"
+	"grubbin-data/backend/internal/repositories"
 	"grubbin-data/backend/internal/routes"
 	"grubbin-data/backend/internal/services"
 	"grubbin-data/backend/internal/utilities"
@@ -38,17 +39,23 @@ func main() {
 	// Response builder (utilities)
 	responseBuilder := utilities.NewResponseBuilder()
 
+	// Repository layer (data access)
+	db := repositories.NewDB(dbPool)
+	repo := repositories.NewRepository(db)
+
 	// Service layer (business logic + orchestration)
 	greetingService := services.NewGreetingService()
+	authService := services.NewAuthService(appConfig, repo)
 
 	// Controller layer (HTTP handlers)
-	greetingController := controllers.NewGreetingController(
+	controller := controllers.NewController(
 		responseBuilder,
+		authService,
 		greetingService,
 	)
 
 	// Routes (Chi router setup)
-	router := routes.SetupRoutes(greetingController)
+	router := routes.SetupRoutes(controller)
 
 	// Create HTTP server
 	serverAddress := fmt.Sprintf(":%d", appConfig.Port)

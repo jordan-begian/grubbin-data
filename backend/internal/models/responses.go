@@ -51,3 +51,11 @@ type DeliveryStats struct {
 	AverageTip              int      `json:"average_tip"`      // cents
 	AverageBasePay          int      `json:"average_base_pay"` // cents
 }
+
+type UserResponse struct {
+	ID        string     `json:"id"`
+	Username  string     `json:"username"`
+	Created   time.Time  `json:"created"`
+	Updated   *time.Time `json:"updated,omitempty"`
+	Profile   *Profile   `json:"profile,omitempty"`
+}

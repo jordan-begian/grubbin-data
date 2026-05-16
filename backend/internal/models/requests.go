@@ -27,3 +27,17 @@ type EarningsRequest struct {
 	Base  int  `json:"base"`            // cents
 	Bonus *int `json:"bonus,omitempty"` // cents, optional
 }
+
+type RegisterUserRequest struct {
+	Username     string   `json:"username"`
+	Password     string   `json:"password"`
+	FirstName    string   `json:"first_name"`
+	LastName     string   `json:"last_name"`
+	VehicleName  *string  `json:"vehicle_name,omitempty"`
+	VehicleMPG   *float64 `json:"vehicle_mpg,omitempty"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}

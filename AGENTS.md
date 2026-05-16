@@ -73,8 +73,8 @@ grubbin-data/
 │   │   ├── models/                  # Domain types and structs
 │   │   │   ├── deliveries.go        # Delivery, PickupLocation, DropoffLocation, DeliveryEarnings
 │   │   │   ├── greeting.go          # Greeting response
-│   │   │   ├── requests.go          # CreateDeliveryRequest
-│   │   │   ├── responses.go         # DeliveryResponse, DeliveryListResponse, DeliveryStats
+│   │   │   ├── requests.go          # CreateDeliveryRequest, RegisterUserRequest, LoginRequest
+│   │   │   ├── responses.go         # DeliveryResponse, DeliveryListResponse, DeliveryStats, UserResponse
 │   │   │   └── user.go              # User, Profile, Vehicle
 │   │   ├── repositories/            # Data access layer (Phase 2+)
 │   │   ├── routes/                  # Chi router configuration
@@ -114,7 +114,7 @@ grubbin-data/
 ## Phases
 
 1. **Phase 1 (Complete)**: Hello-world scaffold. Go API with `GET /api/v1/hello`. React fetches and displays it. Docker Compose runs both.
-2. **Phase 2 (In Progress)**: PostgreSQL + domain model (`Delivery`). CRUD + stats endpoints. Atlas schema management. Task runner workflows.
+2. **Phase 2 (In Progress)**: PostgreSQL + domain model (`Delivery`). CRUD + stats endpoints. Atlas schema management. Task runner workflows. Auth endpoints (register/login) with atomic user+profile+vehicle creation.
 3. **Phase 3**: CSV/JSON data ingestion endpoint.
 4. **Phase 4**: Charts and trend visualization.
 

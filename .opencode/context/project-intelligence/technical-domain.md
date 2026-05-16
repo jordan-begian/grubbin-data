@@ -1,4 +1,4 @@
-<!-- Context: project-intelligence/technical | Priority: critical | Version: 1.3 | Updated: 2026-05-16 -->
+<!-- Context: project-intelligence/technical | Priority: critical | Version: 1.4 | Updated: 2026-05-16 -->
 
 # Technical Domain
 
@@ -77,20 +77,28 @@
 ## API Pattern (Go)
 
 ```go
-func (c *GreetingController) GetGreeting(w http.ResponseWriter, r *http.Request) {
-    name := r.URL.Query().Get("name")
-
-    greeting, err := c.greetingService.GenerateGreeting(r.Context(), name)
-    if err != nil {
-        respondWithError(w, http.StatusInternalServerError, err)
+func (c *Controller) RegisterUser(w http.ResponseWriter, r *http.Request) {
+    var req models.RegisterUserRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        respondWithError(w, http.StatusBadRequest, err)
         return
     }
 
-    respondWithJSON(w, http.StatusOK, greeting)
+    user, err := c.authService.RegisterUser(r.Context(), req.Username, req.Password, req.FirstName, req.LastName, req.VehicleName, req.VehicleMPG)
+    if err != nil {
+        respondWithError(w, http.StatusBadRequest, err)
+        return
+    }
+
+    respondWithJSON(w, http.StatusCreated, user)
 }
 ```
 
-**Rules**: Controllers are thin — parse request, call service, encode response. Never put business logic in controllers. Name variables after their domain meaning.
+**Rules**: 
+- Controllers are thin — parse request, call service, encode response. Never put business logic in controllers.
+- Use a unified `Controller` struct with service interfaces (`AuthService`, `GreetingService`) for testability.
+- Services are injected via interfaces; mocks are used in controller tests.
+- Name variables after their domain meaning.
 
 ---
 
@@ -159,7 +167,8 @@ export function HelloWorld({ greetingMessage, generatedAtTimestamp }: HelloWorld
 
 - Validate all user input with `go-playground/validator` (Phase 2+).
 - Use parameterized queries via `pgx` (Phase 2+).
-- No auth in Phase 1; evaluate JWT middleware in chi if added later.
+- No auth in Phase 1; basic auth (register/login) added in Phase 2.
+- Passwords hashed with bcrypt + pepper; never return password in responses.
 - CORS handled via Vite proxy in dev; chi CORS middleware if needed.
 
 ---
@@ -174,8 +183,8 @@ export function HelloWorld({ greetingMessage, generatedAtTimestamp }: HelloWorld
 **Models**:
 - `backend/internal/models/user.go` — `User`, `Profile`, `Vehicle`
 - `backend/internal/models/deliveries.go` — `Delivery`, `PickupLocation`, `DropoffLocation`, `DeliveryEarnings`
-- `backend/internal/models/requests.go` — `CreateDeliveryRequest`
-- `backend/internal/models/responses.go` — `DeliveryResponse`, `DeliveryListResponse`, `DeliveryStats`
+- `backend/internal/models/requests.go` — `CreateDeliveryRequest`, `RegisterUserRequest`, `LoginRequest`
+- `backend/internal/models/responses.go` — `DeliveryResponse`, `DeliveryListResponse`, `DeliveryStats`, `UserResponse`
 
 **Atlas Schema**:
 - `backend/atlas/schema.pg.hcl` — Schema container (`public`)

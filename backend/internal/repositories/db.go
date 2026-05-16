@@ -51,7 +51,7 @@ func (db *DB) Exec(ctx context.Context, sql string, args ...any) (pgconn.Command
 // WithTx executes the given function inside a database transaction.
 // If the function returns an error, the transaction is rolled back.
 // If the function succeeds, the transaction is committed.
-func (db *DB) WithTx(ctx context.Context, fn func(pgx.Tx) error) error {
+func (db *DB) WithTx(ctx context.Context, fn func(Querier) error) error {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
