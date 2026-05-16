@@ -1,0 +1,42 @@
+version: "3"
+
+tasks:
+  wait:
+    desc: Wait for postgres to be ready
+    cmds:
+      - |
+        until pg_isready -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}}; do
+          echo "Postgres is unavailable - sleeping"
+          sleep 1
+        done
+    env:
+      PGPASSWORD: '{{.DB_PASSWORD}}'
+
+  apply:
+    desc: Apply Atlas schema to database
+    deps: [wait]
+    cmds:
+      - |
+        PGPASSWORD={{.DB_PASSWORD}} psql -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -c "CREATE DATABASE atlas_dev;" 2>/dev/null || true
+      - atlas schema apply --url "{{.DATABASE_URL}}" --to "file://backend/atlas/schema.pg.hcl" --dev-url "postgres://{{.DB_USER}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/atlas_dev?sslmode={{.DB_SSL_MODE}}&search_path=public" --auto-approve
+
+  diff:
+    desc: Generate migration diff from schema changes
+    dir: backend/atlas
+    cmds:
+      - atlas migrate diff {{.CLI_ARGS | default "changes"}} --env local
+    env:
+      DATABASE_URL: '{{.DATABASE_URL}}'
+
+  status:
+    desc: Check migration status
+    dir: backend/atlas
+    cmds:
+      - atlas migrate status --env local
+    env:
+      DATABASE_URL: '{{.DATABASE_URL}}'
+
+  seed:
+    desc: Seed database with test data (placeholder)
+    cmds:
+      - echo "Seeding not implemented yet"

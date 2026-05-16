@@ -1,0 +1,17 @@
+version: "3"
+
+tasks:
+  install:
+    desc: Install frontend dependencies
+    cmds:
+      - bun install
+
+  dev:
+    desc: Run frontend dev server
+    cmds:
+      - bun run dev
+
+  build:
+    desc: Build frontend for production
+    cmds:
+      - bun run build

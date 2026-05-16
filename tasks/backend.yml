@@ -1,0 +1,21 @@
+version: "3"
+
+tasks:
+  run:
+    desc: Run backend locally (requires postgres to be running)
+    cmds:
+      - go run cmd/api/main.go
+    env:
+      DATABASE_URL: '{{.DATABASE_URL}}'
+      PORT: "8080"
+      ENV: "development"
+
+  build:
+    desc: Build backend binary
+    cmds:
+      - go build -o bin/api cmd/api/main.go
+
+  test:
+    desc: Run backend tests
+    cmds:
+      - go test ./...

@@ -1,0 +1,50 @@
+version: "3"
+
+vars:
+  DB_USER: '{{.DB_USER | default "postgres"}}'
+  DB_PASSWORD: '{{.DB_PASSWORD | default "postgres"}}'
+  DB_NAME: '{{.DB_NAME | default "grubbin"}}'
+  DB_HOST: '{{.DB_HOST | default "localhost"}}'
+  DB_PORT: '{{.DB_PORT | default "5432"}}'
+  DB_SSL_MODE: '{{.DB_SSL_MODE | default "disable"}}'
+  DATABASE_URL: 'postgres://{{.DB_USER}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_NAME}}?sslmode={{.DB_SSL_MODE}}'
+
+includes:
+  backend:
+    taskfile: tasks/backend.yml
+    dir: backend
+    vars:
+      DATABASE_URL: '{{.DATABASE_URL}}'
+  db:
+    taskfile: tasks/db.yml
+    vars:
+      DATABASE_URL: '{{.DATABASE_URL}}'
+      DB_USER: '{{.DB_USER}}'
+      DB_PASSWORD: '{{.DB_PASSWORD}}'
+      DB_NAME: '{{.DB_NAME}}'
+      DB_HOST: '{{.DB_HOST}}'
+      DB_PORT: '{{.DB_PORT}}'
+      DB_SSL_MODE: '{{.DB_SSL_MODE}}'
+  docker:
+    taskfile: tasks/docker.yml
+  frontend:
+    taskfile: tasks/frontend.yml
+    dir: frontend
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  dev:
+    desc: Full dev setup — db + backend + frontend
+    deps: [docker:up:db]
+    cmds:
+      - task backend:run
+      - task frontend:dev
+
+  reset:
+    desc: Reset everything — stop, remove volumes, restart
+    cmds:
+      - task docker:down:volumes
+      - task docker:up

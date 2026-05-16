@@ -1,0 +1,23 @@
+version: "3"
+
+tasks:
+  up:
+    desc: Start all services (backend, frontend, postgres)
+    deps: [db:apply]
+    cmds:
+      - docker-compose up --build
+
+  up:db:
+    desc: Start only database
+    cmds:
+      - docker-compose up -d postgres
+
+  down:
+    desc: Stop all services
+    cmds:
+      - docker-compose down
+
+  down:volumes:
+    desc: Stop all services and remove volumes
+    cmds:
+      - docker-compose down -v
