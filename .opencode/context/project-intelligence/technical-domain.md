@@ -12,7 +12,7 @@
 
 | Layer | Technology | Role |
 |-------|-----------|------|
-| Backend | Go 1.24 | API server, business logic |
+| Backend | Go 1.25 | API server, business logic |
 | Router | `go-chi/chi/v5` | HTTP routing & middleware |
 | Config | `godotenv` | `.env` file loading |
 | Logging | `log/slog` (stdlib) | Structured JSON logs |
@@ -22,7 +22,8 @@
 | Frontend | React 19 + Vite + TypeScript | UI layer |
 | Runtime | Bun | Package manager & script runner |
 | Data Fetch | TanStack Query | Server-state caching |
-| Styling | CSS Modules | Scoped styles |
+| Styling | Tailwind CSS v4 | Utility-first CSS |
+| UI Components | shadcn/ui (manual) | Accessible UI primitives |
 | DevOps | Docker + Docker Compose | Containerization |
 
 ---
@@ -105,24 +106,38 @@ func (c *Controller) RegisterUser(w http.ResponseWriter, r *http.Request) {
 ## Component Pattern (React)
 
 ```tsx
-interface HelloWorldProps {
-  greetingMessage: string;
-  generatedAtTimestamp: string;
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+interface UserProfileProps {
+  username: string
+  fullName: string
+  memberSince: string
 }
 
-export function HelloWorld({ greetingMessage, generatedAtTimestamp }: HelloWorldProps) {
+export function UserProfile({ username, fullName, memberSince }: UserProfileProps) {
   return (
-    <article className={styles.greetingContainer}>
-      <h1 className={styles.greetingMessage}>{greetingMessage}</h1>
-      <time className={styles.generatedAtTimestamp} dateTime={generatedAtTimestamp}>
-        {generatedAtTimestamp}
-      </time>
-    </article>
-  );
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Welcome, {fullName}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Username</span>
+          <span className="font-medium">{username}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Member Since</span>
+          <span className="font-medium">{memberSince}</span>
+        </div>
+        <Button variant="outline" className="w-full">Sign Out</Button>
+      </CardContent>
+    </Card>
+  )
 }
 ```
 
-**Rules**: Props in, JSX out. Side effects live in hooks, never during render. Name props to mirror the backend domain model.
+**Rules**: Props in, JSX out. Side effects live in hooks, never during render. Compose shadcn/ui components with Tailwind utility classes. Name props to mirror the backend domain model.
 
 ---
 
@@ -138,7 +153,7 @@ export function HelloWorld({ greetingMessage, generatedAtTimestamp }: HelloWorld
 | Custom hooks | camelCase, `use` prefix, descriptive | `useHelloWorldGreeting` |
 | DB tables | snake_case, plural | `delivery_records` |
 | Atlas HCL files | snake_case, `.pg.hcl` suffix | `users.pg.hcl`, `deliveries.pg.hcl` |
-| CSS Modules | camelCase or kebab-case, descriptive | `.greetingContainer` or `.greeting-container` |
+| Tailwind classes | kebab-case, semantic | `text-muted-foreground`, `bg-primary` |
 | Taskfiles | kebab-case, domain-based | `backend.yml`, `db.yml` |
 | Env vars | UPPER_SNAKE_CASE | `DATABASE_URL`, `DB_HOST` |
 
@@ -150,13 +165,13 @@ export function HelloWorld({ greetingMessage, generatedAtTimestamp }: HelloWorld
 - **Go interfaces are implicit**: structural typing, like TypeScript.
 - **No auth in Phase 1**. Keep scaffold lean.
 - **No hot-reload tool for Go** (no `air`). Use `go run` inside Docker.
-- **Bun replaces npm**: use `bun install`, `bun run`, `bun.lockb`.
+- **Bun replaces npm**: use `bun install`, `bun run`, `bun.lock`.
 - **Vite proxy**: forward `/api` to backend in `vite.config.ts` to avoid CORS.
 - **Frontend fetch**: prefer TanStack Query over raw `useEffect` + `fetch`.
 - **Self-documenting names**: prefer `delivery.EarningsPerHour` over `d.Eph` + comment.
-- **Theme system**: CSS custom properties + `data-theme` attribute on `<html>`.
-- **Theme sources**: `@catppuccin/palette` for Catppuccin; official repos for Tokyo Night/Gruvbox.
-- **Database schema**: edit HCL in `backend/atlas/` → run `task db:apply` → Atlas handles SQL generation.
+- **shadcn/ui**: Manual installation (copy-paste into `src/components/ui/`). Not installed via npm package.
+- **Theme system**: CSS custom properties defined in `src/styles/index.css` via `@theme inline` blocks.
+- **Database schema**: edit HCL in `backend/atlas/schemas/` → run `task db:apply` → Atlas handles SQL generation.
 - **Money as cents**: all monetary values stored as `integer` (cents) to avoid float errors.
 - **Time as UTC**: all timestamps use `timestamptz` in PostgreSQL; Go normalizes to UTC before storage.
 - **Task runner**: `task` is the primary dev tool. Prefer `task up` over `docker-compose up --build`.
@@ -167,8 +182,9 @@ export function HelloWorld({ greetingMessage, generatedAtTimestamp }: HelloWorld
 
 - Validate all user input with `go-playground/validator` (Phase 2+).
 - Use parameterized queries via `pgx` (Phase 2+).
-- No auth in Phase 1; basic auth (register/login) added in Phase 2.
+- Auth implemented in Phase 2: register/login with password validation.
 - Passwords hashed with bcrypt + pepper; never return password in responses.
+- Frontend password requirements mirror backend validation rules.
 - CORS handled via Vite proxy in dev; chi CORS middleware if needed.
 
 ---
@@ -179,6 +195,7 @@ export function HelloWorld({ greetingMessage, generatedAtTimestamp }: HelloWorld
 **Frontend entry**: `frontend/src/main.tsx` — React root + QueryClientProvider.
 **API client**: `frontend/src/services/api.ts` — pure fetch wrapper.
 **Config**: `backend/internal/config/config.go` — typed env loader.
+**UI components**: `frontend/src/components/ui/` — shadcn/ui components (Button, Card, Input, Label, PasswordInput).
 
 **Models**:
 - `backend/internal/models/user.go` — `User`, `Profile`, `Vehicle`
@@ -187,9 +204,9 @@ export function HelloWorld({ greetingMessage, generatedAtTimestamp }: HelloWorld
 - `backend/internal/models/responses.go` — `DeliveryResponse`, `DeliveryListResponse`, `DeliveryStats`, `UserResponse`
 
 **Atlas Schema**:
-- `backend/atlas/schema.pg.hcl` — Schema container (`public`)
-- `backend/atlas/users.pg.hcl` — `users`, `profiles`, `vehicles` tables
-- `backend/atlas/deliveries.pg.hcl` — `deliveries`, `pickup_locations`, `dropoff_locations`, `earnings` tables
+- `backend/atlas/schemas/schema.pg.hcl` — Schema container (`public`)
+- `backend/atlas/schemas/users.pg.hcl` — `users`, `profiles`, `vehicles` tables
+- `backend/atlas/schemas/deliveries.pg.hcl` — `deliveries`, `pickup_locations`, `dropoff_locations`, `earnings` tables
 - `backend/atlas/atlas.hcl` — Atlas project config (environments, variables)
 
 **Task Runner**:
@@ -199,12 +216,11 @@ export function HelloWorld({ greetingMessage, generatedAtTimestamp }: HelloWorld
 - `tasks/docker.yml` — Docker Compose up/down
 - `tasks/frontend.yml` — Bun install, dev, build
 
-**Theme registry**: `frontend/src/themes/registry.ts` — centralized theme definitions.
 **Theme hook**: `frontend/src/hooks/useTheme.tsx` — context provider + persistence.
 **Theme UI**: `frontend/src/components/ThemeSwitcher.tsx` — dropdown selector.
-**Global styles**: `frontend/src/index.css` — theme-aware body/html styles.
-**Theme CSS**: `frontend/src/styles/themes.css` — auto-generated variables.
-**Theme script**: `frontend/scripts/generate-themes.ts` — build-time generator.
+**Global styles**: `frontend/src/styles/index.css` — theme-aware body/html styles with `@theme inline` blocks.
+**shadcn utils**: `frontend/src/lib/utils.ts` — `cn()` helper (clsx + tailwind-merge).
+**Password validation**: `frontend/src/lib/password-validation.ts` — mirrors backend password rules.
 
 ---
 

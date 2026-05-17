@@ -6,13 +6,14 @@ A containerized full-stack application for analyzing Grubhub delivery data over 
 
 | Layer           | Technology                                    |
 | --------------- | --------------------------------------------- |
-| Backend         | Go 1.24 + `chi` router + `slog` logging       |
+| Backend         | Go 1.25 + `chi` router + `slog` logging       |
 | Database        | PostgreSQL 17 + Atlas (schema as code)      |
 | Schema Mgmt     | Atlas (HCL-based, declarative)                |
 | Task Runner     | Task (go-task)                                |
 | Frontend        | React 19 + Vite + TypeScript + Bun            |
 | Data Fetch      | TanStack Query                                |
-| Themes          | CSS custom properties + `@catppuccin/palette` |
+| UI Components   | shadcn/ui (manual install) + Radix UI primitives |
+| Themes          | CSS custom properties (Catppuccin, TokyoNight) |
 | DevOps          | Docker + Docker Compose                       |
 
 ## Architecture
@@ -26,11 +27,12 @@ A containerized full-stack application for analyzing Grubhub delivery data over 
 - `internal/routes/` — Chi router configuration
 - `internal/repositories/` — data access layer (Phase 2+)
 
-**Frontend**: Pure Components + Custom Hooks
+**Frontend**: Pure Components + Custom Hooks + shadcn/ui
 
 - Components are pure: props → JSX
 - Side effects isolated in hooks
-- Theme switching via CSS custom properties
+- shadcn/ui components manually installed in `src/components/ui/`
+- Tailwind CSS v4 with CSS custom properties for theming
 
 **Database**: Declarative schema management with Atlas
 
@@ -58,21 +60,29 @@ cp backend/.env.example backend/.env
 ### Run Everything
 
 ```bash
-# Start PostgreSQL + apply schema + start backend + frontend
+# Start all services in Docker (postgres + backend + frontend)
 task up
 
 # Or start just the database
 task up:db
+
+# Or run Docker DB + local backend + local frontend
+task up:local
 ```
 
 ### Development Commands
 
 ```bash
+# All services in Docker (recommended)
+task up
+
+# Docker DB + local backend + local frontend
+task up:local
+
 # Backend only (requires postgres running)
 task backend:run
 
 # Frontend only
-bun install
 task frontend:dev
 
 # Apply database schema changes after editing HCL
@@ -81,17 +91,20 @@ task db:apply
 # Generate a versioned migration
 task db:diff -- migration_name
 
+# Check migration status
+task db:status
+
 # Run backend tests
 task backend:test
 
-# Stop everything
+# Follow Docker logs
+task logs
+
+# Stop all Docker services
 task down
 
 # Nuclear reset (stop + remove volumes + restart)
 task reset
-
-# Regenerate theme CSS
-bun run generate:themes
 ```
 
 - **Backend**: `http://localhost:8080`
@@ -107,17 +120,19 @@ bun run generate:themes
 - Multi-theme support (Catppuccin, Tokyo Night, Gruvbox)
 - Docker Compose orchestration
 
-**Phase 2** 🔄 — In Progress
+**Phase 2** ✅ — Complete
 
 - PostgreSQL database added to Docker Compose
 - Go model layer established (`User`, `Profile`, `Vehicle`, `Delivery`, `Location`, `Earnings`)
-- Atlas HCL schema defined for all tables
+- Atlas HCL schema defined for all tables (in `backend/atlas/schemas/`)
 - Task runner configured for database + backend + frontend workflows
 - Schema management via Atlas (declarative HCL)
 - Auth endpoints: `POST /api/v1/auth/register` and `POST /api/v1/auth/login`
+- Password validation with real-time frontend feedback
 - Unified `Controller` with service interfaces for testability
 - ULID generation for sortable, unique IDs
 - Atomic user+profile+vehicle creation via transactions
+- All services run in Docker via `task up`
 
 ## Project Structure
 
@@ -125,9 +140,10 @@ bun run generate:themes
 grubbin-data/
 ├── backend/
 │   ├── atlas/                       # Atlas schema-as-code
-│   │   ├── schema.pg.hcl            # Schema container (public)
-│   │   ├── users.pg.hcl             # users, profiles, vehicles tables
-│   │   ├── deliveries.pg.hcl        # deliveries, locations, earnings tables
+│   │   ├── schemas/                 # Schema definition files
+│   │   │   ├── schema.pg.hcl        # Schema container (public)
+│   │   │   ├── users.pg.hcl         # users, profiles, vehicles tables
+│   │   │   └── deliveries.pg.hcl    # deliveries, locations, earnings tables
 │   │   └── atlas.hcl                # Atlas project config (envs, vars)
 │   ├── cmd/api/main.go              # Entry point
 │   ├── internal/
@@ -148,12 +164,13 @@ grubbin-data/
 │   └── go.sum
 ├── frontend/
 │   ├── src/
-│   │   ├── components/              # Pure UI components
+│   │   ├── components/              # UI components
+│   │   │   └── ui/                  # shadcn/ui components (manual install)
 │   │   ├── hooks/                   # Custom hooks
+│   │   ├── lib/                     # Utilities (cn, password validation)
 │   │   ├── services/                # API wrappers
-│   │   ├── themes/                  # Theme registry
-│   │   └── styles/                  # Generated CSS
-│   ├── scripts/generate-themes.ts   # Theme CSS generator
+│   │   ├── themes/                  # Theme CSS files
+│   │   └── styles/                  # Global styles (index.css)
 │   └── Dockerfile
 ├── tasks/                           # Component-based Taskfiles
 │   ├── backend.yml                  # Go build, test, run

@@ -13,7 +13,7 @@ Accept and analyze Grubhub delivery data over time. Starting as a study project 
 
 ## Architecture
 
-- **Backend**: Go 1.24, MVC Architecture with Functional Core / Imperative Shell (FC/IS).
+- **Backend**: Go 1.25, MVC Architecture with Functional Core / Imperative Shell (FC/IS).
   - `internal/core/` — pure functions, zero I/O, zero external imports.
   - `internal/services/` — orchestrators: compose core + side effects (DB, time).
   - `internal/models/` — domain types and data structures.
@@ -39,7 +39,7 @@ Accept and analyze Grubhub delivery data over time. Starting as a study project 
 
 | Layer | Tech |
 |-------|------|
-| Backend | Go 1.24 |
+| Backend | Go 1.25 |
 | Router | `go-chi/chi/v5` |
 | Config | `godotenv` |
 | Logging | `log/slog` (stdlib) |
@@ -49,8 +49,9 @@ Accept and analyze Grubhub delivery data over time. Starting as a study project 
 | Frontend | React 19 + Vite + TypeScript |
 | Frontend runtime | Bun (package install + script runner) |
 | Frontend data | TanStack Query |
-| Frontend themes | `@catppuccin/palette` + CSS custom properties |
-| Styling | CSS Modules |
+| Frontend themes | CSS custom properties (Catppuccin, TokyoNight) |
+| Styling | Tailwind CSS v4 |
+| UI Components | shadcn/ui (manual install) + Radix UI |
 | DevOps | Docker + Docker Compose |
 
 ---
@@ -61,9 +62,10 @@ Accept and analyze Grubhub delivery data over time. Starting as a study project 
 grubbin-data/
 ├── backend/
 │   ├── atlas/                       # Atlas schema-as-code
-│   │   ├── schema.pg.hcl            # Schema container (public)
-│   │   ├── users.pg.hcl             # users, profiles, vehicles tables
-│   │   ├── deliveries.pg.hcl        # deliveries, locations, earnings tables
+│   │   ├── schemas/                 # Schema definition files
+│   │   │   ├── schema.pg.hcl        # Schema container (public)
+│   │   │   ├── users.pg.hcl         # users, profiles, vehicles tables
+│   │   │   └── deliveries.pg.hcl    # deliveries, locations, earnings tables
 │   │   └── atlas.hcl                # Atlas project config (envs, vars)
 │   ├── cmd/api/main.go              # Entry point
 │   ├── internal/
@@ -84,17 +86,16 @@ grubbin-data/
 │   └── go.sum
 ├── frontend/
 │   ├── src/
-│   │   ├── components/              # Pure UI components
+│   │   ├── components/              # UI components
+│   │   │   └── ui/                  # shadcn/ui components (manual install)
 │   │   ├── hooks/                   # Custom hooks (data fetch, side effects)
+│   │   ├── lib/                     # Utilities (cn, password validation)
 │   │   ├── services/                # API fetch wrappers
 │   │   ├── types/                   # TS interfaces (mirror Go structs)
-│   │   ├── themes/                  # Theme registry & definitions
-│   │   ├── styles/                  # Generated theme CSS
-│   │   ├── index.css                # Global theme-aware styles
+│   │   ├── themes/                  # Theme CSS files
+│   │   ├── styles/                  # Global styles (index.css)
 │   │   ├── App.tsx
 │   │   └── main.tsx
-│   ├── scripts/
-│   │   └── generate-themes.ts       # Build-time CSS generator
 │   ├── Dockerfile
 │   ├── package.json
 │   ├── bun.lock
@@ -125,11 +126,14 @@ grubbin-data/
 ### Task Runner (Primary)
 
 ```bash
-# Start everything (postgres + schema apply + backend + frontend)
+# Start all services in Docker (postgres + backend + frontend)
 task up
 
 # Start only database
 task up:db
+
+# Docker DB + local backend + local frontend
+task up:local
 
 # Run backend locally (requires postgres running)
 task backend:run
@@ -149,7 +153,10 @@ task db:status
 # Run frontend dev server
 task frontend:dev
 
-# Stop everything
+# Follow Docker logs
+task logs
+
+# Stop all Docker services
 task down
 
 # Nuclear reset (stop + remove volumes + restart)
@@ -182,14 +189,14 @@ bun run generate:themes
 
 ## Conventions
 
-- **No auth in Phase 1.** Keep scaffold lean.
 - **No hot-reload tool for Go** (no `air`). Use `go run` inside Docker for simplicity.
-- **Bun replaces npm** on the frontend. Use `bun install`, `bun run`, `bun.lockb`.
+- **Bun replaces npm** on the frontend. Use `bun install`, `bun run`, `bun.lock`.
 - **Vite proxy** (recommended): forward `/api` to backend in `vite.config.ts` to avoid CORS.
 - **Go errors are values**: every function returns `(T, error)`. Check `err != nil` immediately.
 - **Go interfaces are implicit**: structural typing, like TypeScript.
 - **Frontend fetch**: prefer TanStack Query over raw `useEffect` + `fetch`.
-- **Database schema**: edit HCL in `backend/atlas/` → run `task db:apply` → Atlas handles SQL generation.
+- **shadcn/ui**: Manual installation (copy-paste into `src/components/ui/`). Not installed via npm package.
+- **Database schema**: edit HCL in `backend/atlas/schemas/` → run `task db:apply` → Atlas handles SQL generation.
 - **Money as cents**: all monetary values stored as `integer` (cents) to avoid float errors.
 - **Time as UTC**: all timestamps use `timestamptz` in PostgreSQL; Go normalizes to UTC before storage.
 
@@ -200,7 +207,7 @@ bun run generate:themes
 - The developer knows Bun/TypeScript/Node but is learning Go. Draw parallels when explaining Go idioms (interfaces, error handling, goroutines).
 - Keep backend handlers thin. Business logic belongs in `core/` or `services/`.
 - Keep React components pure. Side effects live in hooks or event handlers, never during render.
-- **Schema changes workflow**: edit `backend/atlas/*.pg.hcl` → run `task db:apply` (declarative) or `task db:diff -- name` (versioned). Never write raw migration SQL by hand.
+- **Schema changes workflow**: edit `backend/atlas/schemas/*.pg.hcl` → run `task db:apply` (declarative) or `task db:diff -- name` (versioned). Never write raw migration SQL by hand.
 - Atlas uses a dev database (`atlas_dev`) for planning diffs. It's created automatically by `task db:apply`.
-- If adding auth later, evaluate JWT middleware in chi; do not add to Phase 1.
+- Auth is implemented in Phase 2 with bcrypt + pepper password hashing. JWT middleware evaluation is deferred to Phase 3+ if needed.
 - The Task runner (`task`) is the primary dev tool. Prefer `task up` over `docker-compose up --build`.

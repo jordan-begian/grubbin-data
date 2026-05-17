@@ -36,9 +36,38 @@
   }
 }
 
+/* shadcn/ui theme token mapping for all themes */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
 /* Theme-specific base styles with semantic CSS custom properties */
 @layer base {
-  /* Catppuccin Latte (light) - uses latte class variant */
+  /* Catppuccin Latte (light) */
   .ctp-latte {
     --color-bg-primary: #eff1f5;
     --color-bg-secondary: #e6e9ef;
@@ -47,7 +76,27 @@
     --color-text-secondary: #6c6f85;
     --color-accent: #1e66f5;
     --color-border: #bcc0cc;
-    /* latte class is applied via JS to enable the light theme variant */
+
+    --background: #eff1f5;
+    --foreground: #4c4f69;
+    --card: #e6e9ef;
+    --card-foreground: #4c4f69;
+    --popover: #e6e9ef;
+    --popover-foreground: #4c4f69;
+    --primary: #1e66f5;
+    --primary-foreground: #eff1f5;
+    --secondary: #dce0e8;
+    --secondary-foreground: #4c4f69;
+    --muted: #dce0e8;
+    --muted-foreground: #6c6f85;
+    --accent: #8839ef;
+    --accent-foreground: #eff1f5;
+    --destructive: #d20f39;
+    --border: #bcc0cc;
+    --input: #bcc0cc;
+    --ring: #1e66f5;
+    --radius: 0.625rem;
+
     @apply bg-ctp-base text-ctp-text;
   }
 
@@ -60,6 +109,27 @@
     --color-text-secondary: #a5adce;
     --color-accent: #8caaee;
     --color-border: #51576d;
+
+    --background: #303446;
+    --foreground: #c6d0f5;
+    --card: #292c3c;
+    --card-foreground: #c6d0f5;
+    --popover: #292c3c;
+    --popover-foreground: #c6d0f5;
+    --primary: #8caaee;
+    --primary-foreground: #303446;
+    --secondary: #414559;
+    --secondary-foreground: #c6d0f5;
+    --muted: #414559;
+    --muted-foreground: #a5adce;
+    --accent: #ca9ee6;
+    --accent-foreground: #303446;
+    --destructive: #e78284;
+    --border: #51576d;
+    --input: #51576d;
+    --ring: #8caaee;
+    --radius: 0.625rem;
+
     @apply bg-ctp-base text-ctp-text;
   }
 
@@ -72,6 +142,27 @@
     --color-text-secondary: #a5adcb;
     --color-accent: #8aadf4;
     --color-border: #494d64;
+
+    --background: #24273a;
+    --foreground: #cad3f5;
+    --card: #1e2030;
+    --card-foreground: #cad3f5;
+    --popover: #1e2030;
+    --popover-foreground: #cad3f5;
+    --primary: #8aadf4;
+    --primary-foreground: #24273a;
+    --secondary: #363a4f;
+    --secondary-foreground: #cad3f5;
+    --muted: #363a4f;
+    --muted-foreground: #a5adcb;
+    --accent: #c6a0f6;
+    --accent-foreground: #24273a;
+    --destructive: #ed8796;
+    --border: #494d64;
+    --input: #494d64;
+    --ring: #8aadf4;
+    --radius: 0.625rem;
+
     @apply bg-ctp-base text-ctp-text;
   }
 
@@ -84,6 +175,27 @@
     --color-text-secondary: #a6adc8;
     --color-accent: #89b4fa;
     --color-border: #585b70;
+
+    --background: #1e1e2e;
+    --foreground: #cdd6f4;
+    --card: #181825;
+    --card-foreground: #cdd6f4;
+    --popover: #181825;
+    --popover-foreground: #cdd6f4;
+    --primary: #89b4fa;
+    --primary-foreground: #1e1e2e;
+    --secondary: #313244;
+    --secondary-foreground: #cdd6f4;
+    --muted: #313244;
+    --muted-foreground: #a6adc8;
+    --accent: #cba6f7;
+    --accent-foreground: #1e1e2e;
+    --destructive: #f38ba8;
+    --border: #585b70;
+    --input: #585b70;
+    --ring: #89b4fa;
+    --radius: 0.625rem;
+
     @apply bg-ctp-base text-ctp-text;
   }
 
@@ -96,6 +208,27 @@
     --color-text-secondary: #6172b0;
     --color-accent: #2e7de9;
     --color-border: #b4b5b9;
+
+    --background: #e1e2e7;
+    --foreground: #3760bf;
+    --card: #d0d5e3;
+    --card-foreground: #3760bf;
+    --popover: #d0d5e3;
+    --popover-foreground: #3760bf;
+    --primary: #2e7de9;
+    --primary-foreground: #e1e2e7;
+    --secondary: #c1c9df;
+    --secondary-foreground: #3760bf;
+    --muted: #c1c9df;
+    --muted-foreground: #6172b0;
+    --accent: #9854f1;
+    --accent-foreground: #e1e2e7;
+    --destructive: #f52a65;
+    --border: #b4b5b9;
+    --input: #b4b5b9;
+    --ring: #2e7de9;
+    --radius: 0.625rem;
+
     @apply bg-tokyonight-day-bg text-tokyonight-day-fg;
   }
 
@@ -108,6 +241,27 @@
     --color-text-secondary: #828bb8;
     --color-accent: #82aaff;
     --color-border: #1b1d2b;
+
+    --background: #222436;
+    --foreground: #c8d3f5;
+    --card: #1e2030;
+    --card-foreground: #c8d3f5;
+    --popover: #1e2030;
+    --popover-foreground: #c8d3f5;
+    --primary: #82aaff;
+    --primary-foreground: #222436;
+    --secondary: #2f334d;
+    --secondary-foreground: #c8d3f5;
+    --muted: #2f334d;
+    --muted-foreground: #828bb8;
+    --accent: #c099ff;
+    --accent-foreground: #222436;
+    --destructive: #ff757f;
+    --border: #1b1d2b;
+    --input: #1b1d2b;
+    --ring: #82aaff;
+    --radius: 0.625rem;
+
     @apply bg-tokyonight-moon-bg text-tokyonight-moon-fg;
   }
 
@@ -120,6 +274,27 @@
     --color-text-secondary: #a9b1d6;
     --color-accent: #7aa2f7;
     --color-border: #15161e;
+
+    --background: #1a1b26;
+    --foreground: #c0caf5;
+    --card: #16161e;
+    --card-foreground: #c0caf5;
+    --popover: #16161e;
+    --popover-foreground: #c0caf5;
+    --primary: #7aa2f7;
+    --primary-foreground: #1a1b26;
+    --secondary: #24283b;
+    --secondary-foreground: #c0caf5;
+    --muted: #24283b;
+    --muted-foreground: #a9b1d6;
+    --accent: #bb9af7;
+    --accent-foreground: #1a1b26;
+    --destructive: #f7768e;
+    --border: #15161e;
+    --input: #15161e;
+    --ring: #7aa2f7;
+    --radius: 0.625rem;
+
     @apply bg-tokyonight-night-bg text-tokyonight-night-fg;
   }
 
@@ -132,6 +307,43 @@
     --color-text-secondary: #a9b1d6;
     --color-accent: #7aa2f7;
     --color-border: #1d202f;
+
+    --background: #24283b;
+    --foreground: #c0caf5;
+    --card: #1f2335;
+    --card-foreground: #c0caf5;
+    --popover: #1f2335;
+    --popover-foreground: #c0caf5;
+    --primary: #7aa2f7;
+    --primary-foreground: #24283b;
+    --secondary: #2a2e3f;
+    --secondary-foreground: #c0caf5;
+    --muted: #2a2e3f;
+    --muted-foreground: #a9b1d6;
+    --accent: #bb9af7;
+    --accent-foreground: #24283b;
+    --destructive: #f7768e;
+    --border: #1d202f;
+    --input: #1d202f;
+    --ring: #7aa2f7;
+    --radius: 0.625rem;
+
     @apply bg-tokyonight-storm-bg text-tokyonight-storm-fg;
+  }
+}
+
+/* shadcn/ui base layer overrides */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
