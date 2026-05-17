@@ -41,3 +41,16 @@ type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+// UpdateDeliveryRequest represents a partial update for a delivery.
+// Only non-nil fields are updated; nil fields are ignored.
+// Setting a nullable field to an explicit null pointer clears it.
+type UpdateDeliveryRequest struct {
+	ID       string            `json:"id"`
+	Start    *time.Time        `json:"start,omitempty"`
+	End      *time.Time        `json:"end,omitempty"`
+	Pickup   *PickupRequest    `json:"pickup,omitempty"`
+	Dropoff  *DropoffRequest   `json:"dropoff,omitempty"`
+	Earnings *EarningsRequest  `json:"earnings,omitempty"`
+	Note     *string           `json:"note,omitempty"`
+}

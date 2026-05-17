@@ -46,12 +46,14 @@ func main() {
 	// Service layer (business logic + orchestration)
 	greetingService := services.NewGreetingService()
 	authService := services.NewAuthService(appConfig, repo)
+	deliveryService := services.NewDeliveryService(repo)
 
 	// Controller layer (HTTP handlers)
 	controller := controllers.NewController(
 		responseBuilder,
 		authService,
 		greetingService,
+		deliveryService,
 	)
 
 	// Routes (Chi router setup)

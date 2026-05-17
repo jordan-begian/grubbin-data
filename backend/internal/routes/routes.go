@@ -42,5 +42,12 @@ func apiV1Routes(controller *controllers.Controller) http.Handler {
 	router.Post("/auth/register", controller.RegisterUser)
 	router.Post("/auth/login", controller.Login)
 
+	// Deliveries
+	router.Post("/users/{userId}/deliveries", controller.CreateDelivery)
+	router.Get("/users/{userId}/deliveries", controller.GetDeliveries)
+	router.Get("/users/{userId}/deliveries/{deliveryId}", controller.GetDelivery)
+	router.Patch("/users/{userId}/deliveries", controller.UpdateDeliveries)
+	router.Delete("/users/{userId}/deliveries", controller.DeleteDeliveries)
+
 	return router
 }

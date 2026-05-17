@@ -19,3 +19,8 @@ tasks:
     desc: Run backend tests
     cmds:
       - go test ./...
+
+  test:hurl:
+    desc: Run Hurl integration tests (requires backend running)
+    cmds:
+      - hurl --test --variable base_url=http://localhost:8080/api tests/hurl/*.hurl

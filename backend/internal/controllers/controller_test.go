@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"grubbin-data/backend/internal/models"
 	"grubbin-data/backend/internal/utilities"
 )
@@ -37,8 +39,46 @@ func (m *mockGreetingService) GenerateGreeting(ctx context.Context, name string)
 	return m.generateGreetingFunc(ctx, name)
 }
 
+// mockDeliveryService implements the DeliveryService interface for testing.
+type mockDeliveryService struct {
+	createDeliveryFunc   func(ctx context.Context, userID string, req models.CreateDeliveryRequest) (*models.DeliveryResponse, error)
+	getDeliveryFunc      func(ctx context.Context, userID, deliveryID string) (*models.DeliveryResponse, error)
+	getDeliveriesFunc    func(ctx context.Context, userID string, startDate, endDate *time.Time) (*models.DeliveryListResponse, error)
+	updateDeliveriesFunc func(ctx context.Context, userID string, updates []models.UpdateDeliveryRequest) error
+	deleteDeliveriesFunc func(ctx context.Context, userID string, ids []string) error
+}
+
+func (m *mockDeliveryService) CreateDelivery(ctx context.Context, userID string, req models.CreateDeliveryRequest) (*models.DeliveryResponse, error) {
+	return m.createDeliveryFunc(ctx, userID, req)
+}
+
+func (m *mockDeliveryService) GetDelivery(ctx context.Context, userID, deliveryID string) (*models.DeliveryResponse, error) {
+	return m.getDeliveryFunc(ctx, userID, deliveryID)
+}
+
+func (m *mockDeliveryService) GetDeliveries(ctx context.Context, userID string, startDate, endDate *time.Time) (*models.DeliveryListResponse, error) {
+	return m.getDeliveriesFunc(ctx, userID, startDate, endDate)
+}
+
+func (m *mockDeliveryService) UpdateDeliveries(ctx context.Context, userID string, updates []models.UpdateDeliveryRequest) error {
+	return m.updateDeliveriesFunc(ctx, userID, updates)
+}
+
+func (m *mockDeliveryService) DeleteDeliveries(ctx context.Context, userID string, ids []string) error {
+	return m.deleteDeliveriesFunc(ctx, userID, ids)
+}
+
 func newTestController(authService AuthService, greetingService GreetingService) *Controller {
-	return NewController(utilities.NewResponseBuilder(), authService, greetingService)
+	return NewController(utilities.NewResponseBuilder(), authService, greetingService, &mockDeliveryService{})
+}
+
+// withChiParams adds Chi URL parameters to the request context for testing.
+func withChiParams(request *http.Request, params map[string]string) *http.Request {
+	routeCtx := chi.NewRouteContext()
+	for key, value := range params {
+		routeCtx.URLParams.Add(key, value)
+	}
+	return request.WithContext(context.WithValue(request.Context(), chi.RouteCtxKey, routeCtx))
 }
 
 func TestController_RegisterUser_Success(t *testing.T) {
@@ -415,4 +455,383 @@ func TestController_toUserResponse(t *testing.T) {
 	}
 	// Verify Password field is not present on UserResponse struct
 	// (compile-time check via struct definition)
+}
+
+// --- Delivery Controller Tests ---
+
+func TestController_CreateDelivery_Success(t *testing.T) {
+	now := time.Now().UTC()
+	later := now.Add(30 * time.Minute)
+
+	deliveryService := &mockDeliveryService{
+		createDeliveryFunc: func(ctx context.Context, userID string, req models.CreateDeliveryRequest) (*models.DeliveryResponse, error) {
+			if userID != "user-1" {
+				t.Errorf("UserID = %s, want user-1", userID)
+			}
+			return &models.DeliveryResponse{
+				ID:     "delivery-1",
+				UserID: userID,
+				Start:  req.Start,
+				End:    req.End,
+				Pickup: models.PickupResponse{ID: "pickup-1", Name: req.Pickup.Name, Lat: req.Pickup.Lat, Lon: req.Pickup.Lon},
+				Dropoff: models.DropoffResponse{ID: "dropoff-1", Lat: req.Dropoff.Lat, Lon: req.Dropoff.Lon},
+				Earnings: models.EarningsResponse{ID: "earnings-1", Tip: req.Earnings.Tip, Base: req.Earnings.Base},
+			}, nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	body := `{
+		"start": "` + now.Format(time.RFC3339) + `",
+		"end": "` + later.Format(time.RFC3339) + `",
+		"pickup": {"name": "Restaurant", "lat": 40.7, "lon": -74.0},
+		"dropoff": {"lat": 40.8, "lon": -73.9},
+		"earnings": {"tip": 300, "base": 500}
+	}`
+	request := httptest.NewRequest(http.MethodPost, "/users/user-1/deliveries", bytes.NewBufferString(body))
+	request.Header.Set("Content-Type", "application/json")
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.CreateDelivery(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Errorf("Expected status %d, got %d", http.StatusCreated, response.Code)
+	}
+
+	var resp models.DeliveryResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if resp.ID != "delivery-1" {
+		t.Errorf("ID = %s, want delivery-1", resp.ID)
+	}
+	if resp.Pickup.Name != "Restaurant" {
+		t.Errorf("Pickup.Name = %s, want Restaurant", resp.Pickup.Name)
+	}
+}
+
+func TestController_CreateDelivery_MissingUserID(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		createDeliveryFunc: func(ctx context.Context, userID string, req models.CreateDeliveryRequest) (*models.DeliveryResponse, error) {
+			t.Error("CreateDelivery should not be called without user ID")
+			return nil, nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	body := `{"start": "2024-01-01T00:00:00Z", "end": "2024-01-01T00:30:00Z", "pickup": {"name": "R", "lat": 1, "lon": 1}, "dropoff": {"lat": 2, "lon": 2}, "earnings": {"tip": 0, "base": 0}}`
+	request := httptest.NewRequest(http.MethodPost, "/users//deliveries", bytes.NewBufferString(body))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+
+	controller.CreateDelivery(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, response.Code)
+	}
+}
+
+func TestController_CreateDelivery_InvalidJSON(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		createDeliveryFunc: func(ctx context.Context, userID string, req models.CreateDeliveryRequest) (*models.DeliveryResponse, error) {
+			t.Error("CreateDelivery should not be called with invalid JSON")
+			return nil, nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	body := `{"start": "invalid`
+	request := httptest.NewRequest(http.MethodPost, "/users/user-1/deliveries", bytes.NewBufferString(body))
+	request.Header.Set("Content-Type", "application/json")
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.CreateDelivery(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, response.Code)
+	}
+}
+
+func TestController_CreateDelivery_ValidationError(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		createDeliveryFunc: func(ctx context.Context, userID string, req models.CreateDeliveryRequest) (*models.DeliveryResponse, error) {
+			return nil, errors.New("validation failed: [start time is required]")
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	body := `{"end": "2024-01-01T00:30:00Z", "pickup": {"name": "R", "lat": 1, "lon": 1}, "dropoff": {"lat": 2, "lon": 2}, "earnings": {"tip": 0, "base": 0}}`
+	request := httptest.NewRequest(http.MethodPost, "/users/user-1/deliveries", bytes.NewBufferString(body))
+	request.Header.Set("Content-Type", "application/json")
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.CreateDelivery(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, response.Code)
+	}
+}
+
+func TestController_GetDelivery_Success(t *testing.T) {
+	now := time.Now().UTC()
+	later := now.Add(30 * time.Minute)
+
+	deliveryService := &mockDeliveryService{
+		getDeliveryFunc: func(ctx context.Context, userID, deliveryID string) (*models.DeliveryResponse, error) {
+			if userID != "user-1" || deliveryID != "delivery-1" {
+				t.Errorf("UserID = %s, DeliveryID = %s", userID, deliveryID)
+			}
+			return &models.DeliveryResponse{
+				ID:       "delivery-1",
+				UserID:   userID,
+				Start:    now,
+				End:      later,
+				Pickup:   models.PickupResponse{ID: "pickup-1", Name: "Restaurant", Lat: 40.7, Lon: -74.0},
+				Dropoff:  models.DropoffResponse{ID: "dropoff-1", Lat: 40.8, Lon: -73.9},
+				Earnings: models.EarningsResponse{ID: "earnings-1", Tip: 300, Base: 500},
+			}, nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	request := httptest.NewRequest(http.MethodGet, "/users/user-1/deliveries/delivery-1", nil)
+	request = withChiParams(request, map[string]string{"userId": "user-1", "deliveryId": "delivery-1"})
+	response := httptest.NewRecorder()
+
+	controller.GetDelivery(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, response.Code)
+	}
+
+	var resp models.DeliveryResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if resp.ID != "delivery-1" {
+		t.Errorf("ID = %s, want delivery-1", resp.ID)
+	}
+}
+
+func TestController_GetDelivery_NotFound(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		getDeliveryFunc: func(ctx context.Context, userID, deliveryID string) (*models.DeliveryResponse, error) {
+			return nil, errors.New("no rows in result set")
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	request := httptest.NewRequest(http.MethodGet, "/users/user-1/deliveries/nonexistent", nil)
+	request = withChiParams(request, map[string]string{"userId": "user-1", "deliveryId": "nonexistent"})
+	response := httptest.NewRecorder()
+
+	controller.GetDelivery(response, request)
+
+	if response.Code != http.StatusNotFound {
+		t.Errorf("Expected status %d, got %d", http.StatusNotFound, response.Code)
+	}
+}
+
+func TestController_GetDeliveries_Success(t *testing.T) {
+	now := time.Now().UTC()
+	later := now.Add(30 * time.Minute)
+
+	deliveryService := &mockDeliveryService{
+		getDeliveriesFunc: func(ctx context.Context, userID string, startDate, endDate *time.Time) (*models.DeliveryListResponse, error) {
+			return &models.DeliveryListResponse{
+				Deliveries: []models.DeliveryResponse{
+					{
+						ID:       "delivery-1",
+						UserID:   userID,
+						Start:    now,
+						End:      later,
+						Pickup:   models.PickupResponse{ID: "pickup-1", Name: "Restaurant", Lat: 40.7, Lon: -74.0},
+						Dropoff:  models.DropoffResponse{ID: "dropoff-1", Lat: 40.8, Lon: -73.9},
+						Earnings: models.EarningsResponse{ID: "earnings-1", Tip: 300, Base: 500},
+					},
+				},
+				Stats: models.DeliveryStats{TotalTime: 1800, TotalMiles: 5.2},
+			}, nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	request := httptest.NewRequest(http.MethodGet, "/users/user-1/deliveries", nil)
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.GetDeliveries(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, response.Code)
+	}
+
+	var resp models.DeliveryListResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if len(resp.Deliveries) != 1 {
+		t.Errorf("Deliveries count = %d, want 1", len(resp.Deliveries))
+	}
+	if resp.Stats.TotalTime != 1800 {
+		t.Errorf("Stats.TotalTime = %d, want 1800", resp.Stats.TotalTime)
+	}
+}
+
+func TestController_GetDeliveries_WithDateRange(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		getDeliveriesFunc: func(ctx context.Context, userID string, startDate, endDate *time.Time) (*models.DeliveryListResponse, error) {
+			if startDate == nil || endDate == nil {
+				t.Error("Expected startDate and endDate to be set")
+			}
+			return &models.DeliveryListResponse{
+				Deliveries: []models.DeliveryResponse{},
+				Stats:      models.DeliveryStats{},
+			}, nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	request := httptest.NewRequest(http.MethodGet, "/users/user-1/deliveries?start_date=2024-01-01T00:00:00Z&end_date=2024-12-31T23:59:59Z", nil)
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.GetDeliveries(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, response.Code)
+	}
+}
+
+func TestController_GetDeliveries_InvalidDateFormat(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		getDeliveriesFunc: func(ctx context.Context, userID string, startDate, endDate *time.Time) (*models.DeliveryListResponse, error) {
+			t.Error("GetDeliveries should not be called with invalid date format")
+			return nil, nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	request := httptest.NewRequest(http.MethodGet, "/users/user-1/deliveries?start_date=not-a-date", nil)
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.GetDeliveries(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, response.Code)
+	}
+}
+
+func TestController_UpdateDeliveries_Success(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		updateDeliveriesFunc: func(ctx context.Context, userID string, updates []models.UpdateDeliveryRequest) error {
+			if len(updates) != 2 {
+				t.Errorf("Updates count = %d, want 2", len(updates))
+			}
+			return nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	body := `[{"id": "delivery-1", "note": "Updated"}, {"id": "delivery-2", "note": "Another"}]`
+	request := httptest.NewRequest(http.MethodPatch, "/users/user-1/deliveries", bytes.NewBufferString(body))
+	request.Header.Set("Content-Type", "application/json")
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.UpdateDeliveries(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, response.Code)
+	}
+}
+
+func TestController_UpdateDeliveries_EmptyArray(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		updateDeliveriesFunc: func(ctx context.Context, userID string, updates []models.UpdateDeliveryRequest) error {
+			t.Error("UpdateDeliveries should not be called with empty array")
+			return nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	body := `[]`
+	request := httptest.NewRequest(http.MethodPatch, "/users/user-1/deliveries", bytes.NewBufferString(body))
+	request.Header.Set("Content-Type", "application/json")
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.UpdateDeliveries(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, response.Code)
+	}
+}
+
+func TestController_UpdateDeliveries_InvalidJSON(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		updateDeliveriesFunc: func(ctx context.Context, userID string, updates []models.UpdateDeliveryRequest) error {
+			t.Error("UpdateDeliveries should not be called with invalid JSON")
+			return nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	body := `[{"id": "delivery-1"`
+	request := httptest.NewRequest(http.MethodPatch, "/users/user-1/deliveries", bytes.NewBufferString(body))
+	request.Header.Set("Content-Type", "application/json")
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.UpdateDeliveries(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, response.Code)
+	}
+}
+
+func TestController_DeleteDeliveries_Success(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		deleteDeliveriesFunc: func(ctx context.Context, userID string, ids []string) error {
+			if len(ids) != 2 {
+				t.Errorf("IDs count = %d, want 2", len(ids))
+			}
+			return nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	request := httptest.NewRequest(http.MethodDelete, "/users/user-1/deliveries?id=delivery-1&id=delivery-2", nil)
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.DeleteDeliveries(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Errorf("Expected status %d, got %d", http.StatusNoContent, response.Code)
+	}
+}
+
+func TestController_DeleteDeliveries_MissingIDs(t *testing.T) {
+	deliveryService := &mockDeliveryService{
+		deleteDeliveriesFunc: func(ctx context.Context, userID string, ids []string) error {
+			t.Error("DeleteDeliveries should not be called without IDs")
+			return nil
+		},
+	}
+
+	controller := NewController(utilities.NewResponseBuilder(), nil, nil, deliveryService)
+	request := httptest.NewRequest(http.MethodDelete, "/users/user-1/deliveries", nil)
+	request = withChiParams(request, map[string]string{"userId": "user-1"})
+	response := httptest.NewRecorder()
+
+	controller.DeleteDeliveries(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, response.Code)
+	}
 }

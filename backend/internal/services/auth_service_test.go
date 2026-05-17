@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"grubbin-data/backend/internal/config"
 	"grubbin-data/backend/internal/core"
@@ -32,6 +33,34 @@ func (m *mockRepository) GetUserByID(ctx context.Context, id string) (*models.Us
 
 func (m *mockRepository) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
 	return m.getUserByUsernameFunc(ctx, username)
+}
+
+func (m *mockRepository) CreateDelivery(ctx context.Context, delivery *models.Delivery) error {
+	return nil
+}
+
+func (m *mockRepository) GetDeliveryByID(ctx context.Context, userID, deliveryID string) (*models.Delivery, error) {
+	return nil, nil
+}
+
+func (m *mockRepository) GetDeliveriesByUser(ctx context.Context, userID string, startDate, endDate *time.Time) ([]models.Delivery, error) {
+	return nil, nil
+}
+
+func (m *mockRepository) UpdateDelivery(ctx context.Context, userID, deliveryID string, fields core.DeliveryUpdateFields) error {
+	return nil
+}
+
+func (m *mockRepository) UpdateDeliveries(ctx context.Context, userID string, updates []models.UpdateDeliveryRequest) error {
+	return nil
+}
+
+func (m *mockRepository) DeleteDelivery(ctx context.Context, userID, deliveryID string) error {
+	return nil
+}
+
+func (m *mockRepository) DeleteDeliveries(ctx context.Context, userID string, ids []string) error {
+	return nil
 }
 
 func newTestConfig() *config.Config {
