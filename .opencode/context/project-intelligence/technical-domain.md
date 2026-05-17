@@ -1,4 +1,4 @@
-<!-- Context: project-intelligence/technical | Priority: critical | Version: 1.4 | Updated: 2026-05-16 -->
+<!-- Context: project-intelligence/technical | Priority: critical | Version: 1.5 | Updated: 2026-05-17 -->
 
 # Technical Domain
 
@@ -97,9 +97,10 @@ func (c *Controller) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 **Rules**: 
 - Controllers are thin — parse request, call service, encode response. Never put business logic in controllers.
-- Use a unified `Controller` struct with service interfaces (`AuthService`, `GreetingService`) for testability.
+- Use a unified `Controller` struct with service interfaces (`AuthService`, `GreetingService`, `DeliveryService`) for testability.
 - Services are injected via interfaces; mocks are used in controller tests.
 - Name variables after their domain meaning.
+- Delivery endpoints: `POST/GET/PATCH/DELETE /api/users/{userId}/deliveries` with date filtering via query params.
 
 ---
 
@@ -172,9 +173,13 @@ export function UserProfile({ username, fullName, memberSince }: UserProfileProp
 - **shadcn/ui**: Manual installation (copy-paste into `src/components/ui/`). Not installed via npm package.
 - **Theme system**: CSS custom properties defined in `src/styles/index.css` via `@theme inline` blocks.
 - **Database schema**: edit HCL in `backend/atlas/schemas/` → run `task db:apply` → Atlas handles SQL generation.
+- **Date-time picker pattern**: Calendar (shadcn/ui) inside Popover with `captionLayout="dropdown"` for month/year selectors. Preset buttons (Today/Yesterday) above time input in popover footer. Trigger button shows combined date + time string.
+- **Dollar input pattern**: `type="text"` with `inputMode="decimal"` (no spinner arrows). Relative container with absolute `$` prefix span and `pl-7` padding on input. `parseFloat()` for conversion on submit.
 - **Money as cents**: all monetary values stored as `integer` (cents) to avoid float errors.
 - **Time as UTC**: all timestamps use `timestamptz` in PostgreSQL; Go normalizes to UTC before storage.
 - **Task runner**: `task` is the primary dev tool. Prefer `task up` over `docker-compose up --build`.
+- **Database seeding**: `task db:seed` creates test user for local dev (idempotent).
+- **Integration tests**: Hurl tests in `backend/tests/hurl/` test full API lifecycle.
 
 ---
 
@@ -192,15 +197,17 @@ export function UserProfile({ username, fullName, memberSince }: UserProfileProp
 ## 📂 Codebase References
 
 **Backend entry**: `backend/cmd/api/main.go` — wires config, router, server.
+**Seed command**: `backend/cmd/seed/main.go` — seeds test user for local development.
 **Frontend entry**: `frontend/src/main.tsx` — React root + QueryClientProvider.
 **API client**: `frontend/src/services/api.ts` — pure fetch wrapper.
 **Config**: `backend/internal/config/config.go` — typed env loader.
-**UI components**: `frontend/src/components/ui/` — shadcn/ui components (Button, Card, Input, Label, PasswordInput).
+**UI components**: `frontend/src/components/ui/` — shadcn/ui components (Button, Card, Input, Label, PasswordInput, Calendar, Popover, Dialog, AlertDialog, DropdownMenu, ScrollArea, Skeleton, Checkbox, Badge, Avatar, Separator, Textarea).
+**Hurl tests**: `backend/tests/hurl/` — integration tests for delivery CRUD.
 
 **Models**:
 - `backend/internal/models/user.go` — `User`, `Profile`, `Vehicle`
 - `backend/internal/models/deliveries.go` — `Delivery`, `PickupLocation`, `DropoffLocation`, `DeliveryEarnings`
-- `backend/internal/models/requests.go` — `CreateDeliveryRequest`, `RegisterUserRequest`, `LoginRequest`
+- `backend/internal/models/requests.go` — `CreateDeliveryRequest`, `UpdateDeliveryRequest`, `RegisterUserRequest`, `LoginRequest`
 - `backend/internal/models/responses.go` — `DeliveryResponse`, `DeliveryListResponse`, `DeliveryStats`, `UserResponse`
 
 **Atlas Schema**:
@@ -209,10 +216,15 @@ export function UserProfile({ username, fullName, memberSince }: UserProfileProp
 - `backend/atlas/schemas/deliveries.pg.hcl` — `deliveries`, `pickup_locations`, `dropoff_locations`, `earnings` tables
 - `backend/atlas/atlas.hcl` — Atlas project config (environments, variables)
 
+**Services**:
+- `backend/internal/services/auth_service.go` — `AuthService` (register, login)
+- `backend/internal/services/delivery_service.go` — `DeliveryService` (CRUD + stats)
+- `backend/internal/services/greeting_service.go` — `GreetingService`
+
 **Task Runner**:
 - `Taskfile.yml` — Root taskfile with shared vars and includes
-- `tasks/backend.yml` — Go build, test, run
-- `tasks/db.yml` — Atlas schema apply, migrations, wait
+- `tasks/backend.yml` — Go build, test, run, hurl tests
+- `tasks/db.yml` — Atlas schema apply, migrations, seed, wait
 - `tasks/docker.yml` — Docker Compose up/down
 - `tasks/frontend.yml` — Bun install, dev, build
 
@@ -221,6 +233,16 @@ export function UserProfile({ username, fullName, memberSince }: UserProfileProp
 **Global styles**: `frontend/src/styles/index.css` — theme-aware body/html styles with `@theme inline` blocks.
 **shadcn utils**: `frontend/src/lib/utils.ts` — `cn()` helper (clsx + tailwind-merge).
 **Password validation**: `frontend/src/lib/password-validation.ts` — mirrors backend password rules.
+
+**Delivery Dashboard Components**:
+- `frontend/src/components/delivery-form.tsx` — Create delivery form with Calendar + Popover date-time picker, `$` prefixed dollar inputs, form validation.
+- `frontend/src/components/delivery-edit-form.tsx` — Edit delivery modal form with same date-time picker pattern, partial update logic.
+- `frontend/src/components/delivery-list.tsx` — Delivery list with checkbox selection, inline edit/delete actions, AlertDialog confirmations, ScrollArea for overflow.
+- `frontend/src/components/delivery-stats.tsx` — Stats overview cards with Skeleton loading states.
+- `frontend/src/components/user-sidebar.tsx` — Right-edge collapsible sidebar with Avatar, profile/vehicle info, logout button.
+
+**Delivery Hooks**:
+- `frontend/src/hooks/useDeliveries.ts` — TanStack Query hook with mutations for create/update/delete, toast notifications on success/error, query invalidation.
 
 ---
 

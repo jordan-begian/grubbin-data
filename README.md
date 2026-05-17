@@ -88,6 +88,9 @@ task frontend:dev
 # Apply database schema changes after editing HCL
 task db:apply
 
+# Seed database with test user (local dev only)
+task db:seed
+
 # Generate a versioned migration
 task db:diff -- migration_name
 
@@ -96,6 +99,9 @@ task db:status
 
 # Run backend tests
 task backend:test
+
+# Run Hurl integration tests (requires backend running)
+task backend:test:hurl
 
 # Follow Docker logs
 task logs
@@ -132,7 +138,24 @@ task reset
 - Unified `Controller` with service interfaces for testability
 - ULID generation for sortable, unique IDs
 - Atomic user+profile+vehicle creation via transactions
+- **Delivery CRUD endpoints**: `POST/GET/PATCH/DELETE /api/v1/users/{userId}/deliveries`
+- Date range filtering with ISO 8601 query params
+- Partial update (PATCH) with pointer fields for optional/nullable values
+- Dynamic SQL update builder for partial delivery updates
+- Database seed command (`task db:seed`) for local development test user
+- Hurl integration tests for delivery CRUD lifecycle
 - All services run in Docker via `task up`
+- **Frontend delivery management dashboard**:
+  - Right-edge collapsible user sidebar with profile/vehicle info
+  - Delivery creation form with Calendar + Popover date-time picker (month/year dropdowns, Today/Yesterday presets)
+  - Delivery list with checkbox selection, inline edit (modal dialog), and delete (confirmation dialog)
+  - Stats overview cards (deliveries, earnings, avg time, miles, fuel cost)
+  - Toast notifications via sonner for success/error feedback
+  - Loading skeletons and spinners for async operations
+
+**Phase 3** 🔄 — In Progress
+
+- CSV/JSON data ingestion endpoint.
 
 ## Project Structure
 
@@ -145,7 +168,9 @@ grubbin-data/
 │   │   │   ├── users.pg.hcl         # users, profiles, vehicles tables
 │   │   │   └── deliveries.pg.hcl    # deliveries, locations, earnings tables
 │   │   └── atlas.hcl                # Atlas project config (envs, vars)
-│   ├── cmd/api/main.go              # Entry point
+│   ├── cmd/
+│   │   ├── api/main.go              # API entry point
+│   │   └── seed/main.go             # Database seed command (local dev)
 │   ├── internal/
 │   │   ├── config/                  # Environment config (godotenv)
 │   │   ├── controllers/             # MVC controllers (HTTP handlers)
@@ -159,16 +184,37 @@ grubbin-data/
 │   │   ├── repositories/            # Data access layer (Phase 2+)
 │   │   ├── routes/                  # Chi router configuration
 │   │   └── services/                # Business logic orchestrators
+│   ├── tests/
+│   │   └── hurl/                    # Hurl integration tests
+│   │       ├── delivery-crud.hurl
+│   │       └── delivery-errors.hurl
 │   ├── Dockerfile
 │   ├── go.mod
 │   └── go.sum
 ├── frontend/
 │   ├── src/
 │   │   ├── components/              # UI components
-│   │   │   └── ui/                  # shadcn/ui components (manual install)
+│   │   │   ├── ui/                  # shadcn/ui components (manual install)
+│   │   │   ├── delivery-form.tsx    # Create delivery form
+│   │   │   ├── delivery-edit-form.tsx # Edit delivery modal form
+│   │   │   ├── delivery-list.tsx    # Delivery list with selection/edit/delete
+│   │   │   ├── delivery-stats.tsx   # Stats overview cards
+│   │   │   ├── user-sidebar.tsx     # Right-edge user profile sidebar
+│   │   │   ├── login-form.tsx       # Login form
+│   │   │   ├── register-form.tsx    # Registration form
+│   │   │   ├── password-requirements.tsx # Password validation UI
+│   │   │   └── ThemeSwitcher.tsx    # Theme selector
 │   │   ├── hooks/                   # Custom hooks
+│   │   │   ├── useAuth.tsx          # Auth context + login/register/logout
+│   │   │   ├── useDeliveries.ts    # TanStack Query for delivery CRUD
+│   │   │   └── useTheme.tsx         # Theme context + persistence
 │   │   ├── lib/                     # Utilities (cn, password validation)
 │   │   ├── services/                # API wrappers
+│   │   │   ├── auth.ts              # Auth API calls
+│   │   │   └── deliveries.ts        # Delivery CRUD API calls
+│   │   ├── types/                   # TypeScript interfaces
+│   │   │   ├── auth.ts              # User, Profile, Vehicle types
+│   │   │   └── delivery.ts          # Delivery request/response types
 │   │   ├── themes/                  # Theme CSS files
 │   │   └── styles/                  # Global styles (index.css)
 │   └── Dockerfile

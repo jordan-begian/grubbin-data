@@ -75,7 +75,7 @@ grubbin-data/
 │   │   ├── models/                  # Domain types and structs
 │   │   │   ├── deliveries.go        # Delivery, PickupLocation, DropoffLocation, DeliveryEarnings
 │   │   │   ├── greeting.go          # Greeting response
-│   │   │   ├── requests.go          # CreateDeliveryRequest, RegisterUserRequest, LoginRequest
+│   │   │   ├── requests.go          # CreateDeliveryRequest, UpdateDeliveryRequest, RegisterUserRequest, LoginRequest
 │   │   │   ├── responses.go         # DeliveryResponse, DeliveryListResponse, DeliveryStats, UserResponse
 │   │   │   └── user.go              # User, Profile, Vehicle
 │   │   ├── repositories/            # Data access layer (Phase 2+)
@@ -87,11 +87,27 @@ grubbin-data/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/              # UI components
-│   │   │   └── ui/                  # shadcn/ui components (manual install)
+│   │   │   ├── ui/                  # shadcn/ui components (manual install)
+│   │   │   ├── delivery-form.tsx    # Create delivery form
+│   │   │   ├── delivery-edit-form.tsx # Edit delivery modal form
+│   │   │   ├── delivery-list.tsx    # Delivery list with selection/edit/delete
+│   │   │   ├── delivery-stats.tsx   # Stats overview cards
+│   │   │   ├── user-sidebar.tsx     # Right-edge user profile sidebar
+│   │   │   ├── login-form.tsx       # Login form
+│   │   │   ├── register-form.tsx    # Registration form
+│   │   │   ├── password-requirements.tsx # Password validation UI
+│   │   │   └── ThemeSwitcher.tsx    # Theme selector
 │   │   ├── hooks/                   # Custom hooks (data fetch, side effects)
+│   │   │   ├── useAuth.tsx          # Auth context + login/register/logout
+│   │   │   ├── useDeliveries.ts    # TanStack Query for delivery CRUD
+│   │   │   └── useTheme.tsx         # Theme context + persistence
 │   │   ├── lib/                     # Utilities (cn, password validation)
 │   │   ├── services/                # API fetch wrappers
+│   │   │   ├── auth.ts              # Auth API calls
+│   │   │   └── deliveries.ts        # Delivery CRUD API calls
 │   │   ├── types/                   # TS interfaces (mirror Go structs)
+│   │   │   ├── auth.ts              # User, Profile, Vehicle types
+│   │   │   └── delivery.ts          # Delivery request/response types
 │   │   ├── themes/                  # Theme CSS files
 │   │   ├── styles/                  # Global styles (index.css)
 │   │   ├── App.tsx
@@ -115,8 +131,8 @@ grubbin-data/
 ## Phases
 
 1. **Phase 1 (Complete)**: Hello-world scaffold. Go API with `GET /api/v1/hello`. React fetches and displays it. Docker Compose runs both.
-2. **Phase 2 (In Progress)**: PostgreSQL + domain model (`Delivery`). CRUD + stats endpoints. Atlas schema management. Task runner workflows. Auth endpoints (register/login) with atomic user+profile+vehicle creation.
-3. **Phase 3**: CSV/JSON data ingestion endpoint.
+2. **Phase 2 (Complete)**: PostgreSQL + domain model (`Delivery`). CRUD + stats endpoints. Atlas schema management. Task runner workflows. Auth endpoints (register/login) with atomic user+profile+vehicle creation. Delivery CRUD with partial update (PATCH). Database seeding for local dev. Hurl integration tests.
+3. **Phase 3 (In Progress)**: CSV/JSON data ingestion endpoint.
 4. **Phase 4**: Charts and trend visualization.
 
 ---
@@ -143,6 +159,9 @@ task backend:test
 
 # Apply database schema changes after editing HCL
 task db:apply
+
+# Seed database with test user (local dev only)
+task db:seed
 
 # Generate a versioned migration
 task db:diff -- migration_name
@@ -211,3 +230,11 @@ bun run generate:themes
 - Atlas uses a dev database (`atlas_dev`) for planning diffs. It's created automatically by `task db:apply`.
 - Auth is implemented in Phase 2 with bcrypt + pepper password hashing. JWT middleware evaluation is deferred to Phase 3+ if needed.
 - The Task runner (`task`) is the primary dev tool. Prefer `task up` over `docker-compose up --build`.
+- **Database seeding**: `task db:seed` creates a test user (`test` / `T3stPass135!`) with profile and vehicle for local development. Only runs if user doesn't exist (idempotent).
+- **Hurl tests**: Integration tests in `backend/tests/hurl/` test the full delivery CRUD lifecycle. Run with `task backend:test:hurl` (requires backend running).
+- **Delivery endpoints**: `POST/GET/PATCH/DELETE /api/users/{userId}/deliveries`. Date filtering via `?start_date=` and `?end_date=` query params (ISO 8601 UTC).
+- **Partial updates**: PATCH accepts an array of `{id, ...fields}`. Only non-nil fields are updated. Pointer fields (`*string`, `*time.Time`) distinguish between "don't update" (omitted) and "update to value" (provided).
+- **Frontend date-time picker**: Calendar + Popover pattern from shadcn/ui. Use `captionLayout="dropdown"` for month/year selectors. Include Today/Yesterday preset buttons inside the popover footer. Time input below presets.
+- **Frontend dollar inputs**: Use `type="text"` with `inputMode="decimal"` (removes spinner arrows). Wrap in relative container with absolute `$` prefix and `pl-7` padding. `parseFloat()` handles string-to-number conversion on submit.
+- **Frontend delete confirmation**: AlertDialog for both bulk and single delete operations. Query params for delete: `?id=1&id=2`.
+- **Frontend toast notifications**: sonner Toaster in main.tsx, triggered from TanStack Query mutation callbacks in hooks.
