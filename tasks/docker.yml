@@ -2,8 +2,7 @@ version: "3"
 
 tasks:
   up:
-    desc: Start all services (backend, frontend, postgres)
-    deps: [db:apply]
+    desc: Start all services via Docker Compose (backend, frontend, postgres)
     cmds:
       - docker-compose up --build
 

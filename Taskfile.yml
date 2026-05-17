@@ -36,15 +36,68 @@ tasks:
     cmds:
       - task --list
 
-  dev:
-    desc: Full dev setup — db + backend + frontend
+  up:db:
+    desc: Start only the database container
+    cmds:
+      - task docker:up:db
+
+  up:
+    desc: Full dev setup — all services in Docker (postgres + backend + frontend)
+    cmds:
+      - docker-compose up -d postgres
+      - task db:apply
+      - docker-compose up --build -d backend frontend
+      - |
+        echo "All services running in Docker:"
+        echo "  Postgres:  localhost:5432"
+        echo "  Backend:   localhost:8080"
+        echo "  Frontend:  localhost:5173"
+        echo ""
+        echo "Run 'task logs' to follow logs, or 'task down' to stop."
+
+  up:local:
+    desc: Local dev setup — Docker DB + local backend + local frontend
     deps: [docker:up:db]
     cmds:
-      - task backend:run
-      - task frontend:dev
+      - task db:apply
+      - |
+        cleanup() {
+          echo "Stopping backend..."
+          kill $BACKEND_PID 2>/dev/null || true
+          wait $BACKEND_PID 2>/dev/null || true
+        }
+        trap cleanup EXIT
+        echo "Building backend..."
+        cd backend && go build -o /tmp/grubbin-api cmd/api/main.go
+        echo "Starting backend on :8080..."
+        DATABASE_URL="{{.DATABASE_URL}}" PORT="8080" ENV="development" /tmp/grubbin-api &
+        BACKEND_PID=$!
+        sleep 3
+        echo "Starting frontend dev server..."
+        task frontend:dev
+        wait $BACKEND_PID 2>/dev/null || true
+
+  dev:
+    desc: Alias for 'up' — full dev setup in Docker
+    cmds:
+      - task up
+
+  logs:
+    desc: Follow Docker Compose logs
+    cmds:
+      - docker-compose logs -f
+
+  down:
+    desc: Stop all Docker services
+    cmds:
+      - task docker:down
 
   reset:
     desc: Reset everything — stop, remove volumes, restart
     cmds:
+      - |
+        echo "Killing any existing local backend..."
+        pkill -f "grubbin-api" 2>/dev/null || true
+        pkill -f "go run cmd/api/main.go" 2>/dev/null || true
       - task docker:down:volumes
-      - task docker:up
+      - task up

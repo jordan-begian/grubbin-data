@@ -52,20 +52,20 @@ locals {
 // --- Environments ---
 
 env "local" {
-  src = "file://schema.pg.hcl"
+  src = "file://schemas/"
   url = local.db_url
   dev = "docker://postgres/17/dev?search_path=public"
 }
 
 env "docker" {
-  src = "file://schema.pg.hcl"
+  src = "file://schemas/"
   url = local.db_url
   // Uses a real database (atlas_dev) instead of Docker-in-Docker for containerized environments
   dev = "postgres://${var.db_user}:${var.db_password}@${var.db_host}:${var.db_port}/atlas_dev?sslmode=${var.db_ssl_mode}&search_path=public"
 }
 
 env "prod" {
-  src = "file://schema.pg.hcl"
+  src = "file://schemas/"
   url = local.db_url
   dev = "docker://postgres/17/dev?search_path=public"
 }
