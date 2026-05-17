@@ -35,6 +35,7 @@ tasks:
       DATABASE_URL: '{{.DATABASE_URL}}'
 
   seed:
-    desc: Seed database with test data (placeholder)
+    desc: Seed database with test user for local development
+    dir: backend
     cmds:
-      - echo "Seeding not implemented yet"
+      - go run cmd/seed/main.go

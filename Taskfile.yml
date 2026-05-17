@@ -46,12 +46,17 @@ tasks:
     cmds:
       - docker-compose up -d postgres
       - task db:apply
+      - task db:seed
       - docker-compose up --build -d backend frontend
       - |
         echo "All services running in Docker:"
         echo "  Postgres:  localhost:5432"
         echo "  Backend:   localhost:8080"
         echo "  Frontend:  localhost:5173"
+        echo ""
+        echo "Test user credentials:"
+        echo "  Username: test"
+        echo "  Password: T3stPass135!"
         echo ""
         echo "Run 'task logs' to follow logs, or 'task down' to stop."
 
